@@ -1,47 +1,57 @@
 package com.example.coffeeshopapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.coffeeshopapp.ui.theme.CoffeeShopAppTheme
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             CoffeeShopAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                ProductListScreen()
             }
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+fun ProductListScreen() {
+    val products = remember { mutableStateListOf<Product>() }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    CoffeeShopAppTheme {
-        Greeting("Arkadiy")
+    LaunchedEffect(Unit) {
+        RetrofitClient.instance.getProducts().enqueue(object : Callback<List<Product>> {
+            override fun onResponse(
+                call: Call<List<Product>>,
+                response: Response<List<Product>>
+            ) {
+                response.body()?.let {
+                    products.addAll(it)
+                }
+            }
+
+            override fun onFailure(call: Call<List<Product>>, t: Throwable) {
+                Log.e("MainActivity", "Failed to fetch products", t)
+            }
+        })
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        items(products) { product ->
+            Text(text = "${product.name}: ${product.price}")
+        }
     }
 }
