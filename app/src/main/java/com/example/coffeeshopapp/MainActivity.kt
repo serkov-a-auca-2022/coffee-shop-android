@@ -1,57 +1,87 @@
 package com.example.coffeeshopapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import com.example.coffeeshopapp.ui.theme.CoffeeShopAppTheme
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-
+import androidx.compose.ui.graphics.Color
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.*
+import com.example.coffeeshopapp.screens.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            CoffeeShopAppTheme {
-                ProductListScreen()
-            }
+            CoffeeShopApp()
         }
     }
 }
 
+/**
+ * Навигация и нижнее меню (Scaffold) .
+ */
 @Composable
-fun ProductListScreen() {
-    val products = remember { mutableStateListOf<Product>() }
+fun CoffeeShopApp() {
+    val navController = rememberNavController()
 
-    LaunchedEffect(Unit) {
-        RetrofitClient.instance.getProducts().enqueue(object : Callback<List<Product>> {
-            override fun onResponse(
-                call: Call<List<Product>>,
-                response: Response<List<Product>>
-            ) {
-                response.body()?.let {
-                    products.addAll(it)
-                }
-            }
-
-            override fun onFailure(call: Call<List<Product>>, t: Throwable) {
-                Log.e("MainActivity", "Failed to fetch products", t)
-            }
-        })
+    Scaffold(
+        bottomBar = { BottomNavigationBar(navController) }
+    ) { paddingValues ->
+        NavHostContainer(navController, Modifier.padding(paddingValues))
     }
+}
 
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        items(products) { product ->
-            Text(text = "${product.name}: ${product.price}")
+/**
+ *  Контейнер для NavHost ( Все страницы подключены здесь).
+ */
+@Composable
+fun NavHostContainer(navController: NavHostController, modifier: Modifier = Modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = "home",
+        modifier = modifier
+    ) {
+        composable("home") { HomeScreen() }
+        composable("branches") { BranchesScreen() }
+        composable("qr") { QrScreen() }
+        composable("news") { NewsScreen() }
+        composable("profile") { ProfileScreen() }
+    }
+}
+
+/**
+ *  Нижняя навигационная панель.
+ */
+@Composable
+fun BottomNavigationBar(navController: NavHostController) {
+    val items = listOf(
+        "home" to "Главная",
+        "branches" to "Филиалы",
+        "qr" to "Мой QR",
+        "news" to "Новости",
+        "profile" to "Профиль"
+    )
+
+    NavigationBar(containerColor = Color.LightGray) {
+        val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+
+        items.forEach { (route, title) ->
+            NavigationBarItem(
+                label = { Text(title) },
+                selected = currentRoute == route,
+                onClick = {
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                icon = {  }
+            )
         }
     }
 }
