@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Навигация и нижнее меню (Scaffold) .
+ * Навигация и нижнее меню (Scaffold).
  */
 @Composable
 fun CoffeeShopApp() {
@@ -36,25 +36,44 @@ fun CoffeeShopApp() {
 }
 
 /**
- *  Контейнер для NavHost ( Все страницы подключены здесь).
+ * Контейнер для NavHost (все страницы подключены здесь).
  */
 @Composable
 fun NavHostContainer(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
-        startDestination = "home",
+        startDestination = "home", // Стартовый экран
         modifier = modifier
     ) {
         composable("home") { HomeScreen() }
         composable("branches") { BranchesScreen() }
-        composable("qr") { QrScreen() }
+        composable("qr") { QrScreen(navController) }
         composable("news") { NewsScreen() }
-        composable("profile") { ProfileScreen() }
+        composable("profile") { ProfileScreen(navController) }
+        composable("login") {
+            LoginScreen(
+                navController = navController, // Передача контроллера
+                onLoginSuccess = { user -> navController.navigate("profile") },
+                onSwitchToRegister = { navController.navigate("register") }
+            )
+        }
+
+        composable("register") {
+            RegisterScreen(
+                onRegisterSuccess = { user ->
+                    navController.navigate("profile")
+                },
+                onSwitchToLogin = {
+                    navController.navigate("login")
+                }
+            )
+        }
     }
 }
 
+
 /**
- *  Нижняя навигационная панель.
+ * Нижняя навигационная панель.
  */
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
@@ -80,7 +99,7 @@ fun BottomNavigationBar(navController: NavHostController) {
                         restoreState = true
                     }
                 },
-                icon = {  }
+                icon = { }
             )
         }
     }
