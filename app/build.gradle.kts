@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.coffeeshopapp"
-        minSdk = 21
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -55,6 +55,9 @@ dependencies {
     implementation("androidx.compose.material:material:1.5.0")
     implementation("com.google.zxing:core:3.5.1")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("io.coil-kt:coil-compose:2.2.2")
+    implementation ("androidx.compose.material:material-icons-core")
+    implementation ("androidx.compose.material:material-icons-extended")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

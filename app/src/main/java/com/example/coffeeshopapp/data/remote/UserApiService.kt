@@ -35,7 +35,7 @@ interface UserApiService {
         fun getInstance(): UserApiService {
             if (INSTANCE == null) {
                 val retrofit = Retrofit.Builder()
-                    .baseUrl("http://10.0.2.2:8080/")
+                    .baseUrl("https://coffee-shop-backend-coffeeshopapp.up.railway.app/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()
 

@@ -3,7 +3,8 @@ package com.example.coffeeshopapp.data.remote
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-object UserRetrofitClient {
+object LoyaltyRetrofitClient {
+
     private const val BASE_URL = "https://coffee-shop-backend-coffeeshopapp.up.railway.app/"
 
     private val retrofit by lazy {
@@ -13,7 +14,7 @@ object UserRetrofitClient {
             .build()
     }
 
-    val api: UserApiService by lazy {
-        retrofit.create(UserApiService::class.java)
+    val api: LoyaltyApiService by lazy {
+        retrofit.create(LoyaltyApiService::class.java)
     }
 }

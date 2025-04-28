@@ -1,18 +1,35 @@
 package com.example.coffeeshopapp.screens
 
 import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.ui.platform.LocalContext
-import com.example.coffeeshopapp.*
+import com.example.coffeeshopapp.R
+import com.example.coffeeshopapp.UserPreferences
 import com.example.coffeeshopapp.data.models.User
 import com.example.coffeeshopapp.data.remote.UserRetrofitClient
+import com.example.coffeeshopapp.ui.theme.CoffeeBrown
+import com.example.coffeeshopapp.ui.theme.Cream
+import com.example.coffeeshopapp.ui.theme.DarkBrown
+import com.example.coffeeshopapp.ui.theme.Golden
+import com.example.coffeeshopapp.ui.theme.LightBeige
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
@@ -22,7 +39,6 @@ fun ProfileScreen(navController: NavController) {
     var isLoginScreen by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Проверяем сохранённый номер телефона
     LaunchedEffect(Unit) {
         val savedPhone = userPreferences.getPhone()
         if (savedPhone.isNotEmpty()) {
@@ -43,51 +59,135 @@ fun ProfileScreen(navController: NavController) {
             }
         } else {
             isLoading = false
-            isLoginScreen = true // Если нет пользователя — показываем вход
+            isLoginScreen = true
         }
     }
 
-    if (isLoading) {
-        CircularProgressIndicator()
-    } else {
-        if (user == null) {
-            if (isLoginScreen) {
-                LoginScreen(
-                    navController = navController, // Передаём navController
-                    onLoginSuccess = { loggedInUser ->
-                        user = loggedInUser
-                        userPreferences.saveUser(loggedInUser)
-                    },
-                    onSwitchToRegister = { isLoginScreen = false }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Профиль", style = MaterialTheme.typography.headlineSmall) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = CoffeeBrown,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
-            }  else {
-                RegisterScreen(
-                    onRegisterSuccess = { newUser ->
-                        user = newUser
-                        userPreferences.saveUser(newUser)
-                    },
-                    onSwitchToLogin = { isLoginScreen = true }
-                )
+            )
+        },
+        containerColor = LightBeige
+    ) { innerPadding ->
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
         } else {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Профиль", style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Имя: ${user!!.firstName}")
-                Text(text = "Фамилия: ${user!!.lastName}")
-                if (!user!!.email.isNullOrEmpty()) {
-                    Text(text = "Email: ${user!!.email}")
+            if (user == null) {
+                if (isLoginScreen) {
+                    LoginScreen(
+                        navController = navController,
+                        onLoginSuccess = { loggedInUser ->
+                            user = loggedInUser
+                            userPreferences.saveUser(loggedInUser)
+                        },
+                        onSwitchToRegister = { isLoginScreen = false }
+                    )
+                } else {
+                    RegisterScreen(
+                        onRegisterSuccess = { newUser ->
+                            user = newUser
+                            userPreferences.saveUser(newUser)
+                        },
+                        onSwitchToLogin = { isLoginScreen = true }
+                    )
                 }
-                Text(text = "Телефон: ${user!!.phone}")
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Cream, LightBeige)
+                            )
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(CoffeeBrown, Cream)
+                                    )
+                                )
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.profile_icon_background),
+                                contentDescription = "Аватар",
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(CircleShape)
+                                    .background(Cream)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = "${user!!.firstName} ${user!!.lastName}",
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                if (user!!.email.isNotEmpty()) {
+                                    Text(
+                                        text = user!!.email,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                Text(
+                                    text = "Телефон: ${user!!.phone}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = {
-                    userPreferences.clearUser()
-                    user = null
-                    isLoginScreen = true
-                }) {
-                    Text("Выйти")
+                    Button(
+                        onClick = {
+                            userPreferences.clearUser()
+                            user = null
+                            isLoginScreen = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Golden,
+                            contentColor = DarkBrown
+                        )
+                    ) {
+                        Text("Выйти", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
         }
