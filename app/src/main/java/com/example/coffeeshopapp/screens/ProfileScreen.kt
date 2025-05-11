@@ -119,13 +119,10 @@ fun ProfileScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
-                        )
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
                         Row(
                             modifier = Modifier
@@ -154,14 +151,19 @@ fun ProfileScreen(navController: NavController) {
                                     color = Color.White
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                if (user!!.email.isNotEmpty()) {
-                                    Text(
-                                        text = user!!.email,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                }
+
+                                // Показываем email только если он не null и не пустой
+                                user!!.email
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let { nonNullEmail ->
+                                        Text(
+                                            text = nonNullEmail,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                    }
+
                                 Text(
                                     text = "Телефон: ${user!!.phone}",
                                     style = MaterialTheme.typography.bodyMedium,

@@ -7,10 +7,10 @@ import retrofit2.http.POST
 import retrofit2.http.Body
 
 interface NewsApiService {
-    @GET("api/news")
+    @GET("news")
     fun getAllNews(): Call<List<NewsItem>>
 
-    @POST("api/news")
+    @POST("news")
     fun createNews(@Body news: NewsItem): Call<NewsItem>
 
 }

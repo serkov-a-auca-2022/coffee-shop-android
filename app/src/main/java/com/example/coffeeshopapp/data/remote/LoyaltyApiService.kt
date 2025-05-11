@@ -11,12 +11,12 @@ interface LoyaltyApiService {
     /**
      * Добавить визит (POST /api/loyalty/visits/{userId})
      */
-    @POST("api/loyalty/visits/{userId}")
+    @POST("loyalty/visits/{userId}")
     fun addVisit(@Path("userId") userId: Long): Call<String>
 
     /**
      * Получить все уведомления пользователя (GET /api/loyalty/notifications/{userId})
      */
-    @GET("api/loyalty/notifications/{userId}")
+    @GET("loyalty/notifications/{userId}")
     fun getUserNotifications(@Path("userId") userId: Long): Call<List<Notification>>
 }

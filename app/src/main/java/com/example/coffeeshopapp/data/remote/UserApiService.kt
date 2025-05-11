@@ -13,20 +13,20 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface UserApiService {
-    @POST("api/users/register")
+    @POST("users/register")
     fun registerUser(@Body user: User): Call<User>
 
-    @GET("api/users/{phone}")
+    @GET("users/{phone}")
     suspend fun getUser(@Path("phone") phone: String): Response<User>
 
 
-    @POST("api/points/add")
+    @POST("points/add")
     fun addPoints(@Body transaction: PointsTransaction): Call<String>
 
-    @POST("api/points/deduct")
+    @POST("points/deduct")
     fun deductPoints(@Body transaction: PointsTransaction): Call<String>
 
-    @GET("api/points/history/{userId}")
+    @GET("points/history/{userId}")
     suspend fun getPointsHistory(@Path("userId") userId: Long): List<PointsHistory>
 
     companion object {
@@ -35,7 +35,7 @@ interface UserApiService {
         fun getInstance(): UserApiService {
             if (INSTANCE == null) {
                 val retrofit = Retrofit.Builder()
-                    .baseUrl("https://coffee-shop-backend-coffeeshopapp.up.railway.app/")
+                    .baseUrl("https://coffee-shop-backend-coffeeshopapp.up.railway.app/api/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()
 

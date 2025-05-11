@@ -5,7 +5,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object LoyaltyRetrofitClient {
 
-    private const val BASE_URL = "https://coffee-shop-backend-coffeeshopapp.up.railway.app/"
+    private const val BASE_URL = "https://coffee-shop-backend-coffeeshopapp.up.railway.app/api/"
 
     private val retrofit by lazy {
         Retrofit.Builder()
