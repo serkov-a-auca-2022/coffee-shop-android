@@ -20,8 +20,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.coffeeshopapp.UserPreferences
+import com.example.coffeeshopapp.data.models.LoyaltySummary
 import com.example.coffeeshopapp.data.models.User
 import com.example.coffeeshopapp.data.models.PointsHistory
+import com.example.coffeeshopapp.data.remote.UserApiService
 import com.example.coffeeshopapp.data.remote.UserRetrofitClient
 import com.example.coffeeshopapp.ui.theme.CoffeeBrown
 import com.example.coffeeshopapp.ui.theme.Cream
@@ -35,206 +37,143 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QrScreen(navController: NavController) {
-    val context = LocalContext.current
-    val userPreferences = remember { UserPreferences(context) }
-    var user by remember { mutableStateOf<User?>(null) }
-    var points by remember { mutableStateOf(0.0) }
-    var history by remember { mutableStateOf<List<PointsHistory>>(emptyList()) }
+    val ctx   = LocalContext.current
+    val prefs = remember { UserPreferences(ctx) }
+
+    var user      by remember { mutableStateOf<User?>(null) }
+    var summary   by remember { mutableStateOf<LoyaltySummary?>(null) }
+    var history   by remember { mutableStateOf<List<PointsHistory>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    val coroutineScope = rememberCoroutineScope()
 
-    fun loadUserData() {
-        coroutineScope.launch {
-            Log.d("QrScreen", "Начинаем загрузку данных...")
-            isLoading = true
-            user = userPreferences.getUser()
+    val scope = rememberCoroutineScope()
 
-            if (user == null) {
-                Log.d("QrScreen", "Пользователь не найден в локальном хранилище.")
-                isLoading = false
-                return@launch
-            }
-
-            try {
-                val response = UserRetrofitClient.api.getUser(user!!.phone)
-                if (response.isSuccessful) {
-                    points = response.body()?.points ?: 0.0
-                    Log.d("QrScreen", "Баллы пользователя: $points")
-                } else {
-                    Log.e("QrScreen", "Ошибка загрузки баллов: ${response.code()}")
-                }
-
-                history = UserRetrofitClient.api.getPointsHistory(user!!.id)
-                Log.d("QrScreen", "Загружено ${history.size} записей истории.")
-            } catch (e: Exception) {
-                Log.e("QrScreen", "Ошибка загрузки данных: ${e.message}")
-            } finally {
-                isLoading = false
-                Log.d("QrScreen", "Загрузка данных завершена.")
-            }
+    fun loadAll() = scope.launch {
+        isLoading = true
+        user = prefs.getUser()
+        if (user == null) {
+            isLoading = false
+            return@launch
         }
+        try {
+            summary = UserApiService.getInstance()
+                .getLoyaltySummary(user!!.id)
+            history = UserApiService.getInstance()
+                .getPointsHistory(user!!.id)
+        } catch (e: Exception) {
+            Log.e("QrScreen", "Ошибка загрузки", e)
+        }
+        isLoading = false
     }
 
-    LaunchedEffect(Unit) {
-        loadUserData()
-    }
+    LaunchedEffect(Unit) { loadAll() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Мой QR", style = MaterialTheme.typography.headlineSmall) },
+                title = { Text("Мой QR") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = CoffeeBrown,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    titleContentColor = Color.White
                 )
             )
         },
         containerColor = LightBeige
-    ) { innerPadding ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (user == null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Для использования QR-кода, войдите в аккаунт",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = DarkBrown
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { navController.navigate("login") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Golden,
-                        contentColor = DarkBrown
-                    )
-                ) {
-                    Text("Войти", style = MaterialTheme.typography.labelLarge)
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when {
+                isLoading -> {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
-            }
-        } else {
-            val qrBitmap = remember(user!!.qrCodeNumber) { generateQrCodeBitmap(user!!.qrCodeNumber) }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Cream, LightBeige)
-                        )
-                    ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    )
-                ) {
+                user == null -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Cream, LightBeige)
-                                )
-                            )
-                            .padding(24.dp),
+                        Modifier.fillMaxSize().padding(24.dp),
+                        verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(
-                            bitmap = qrBitmap.asImageBitmap(),
-                            contentDescription = "QR-код",
-                            modifier = Modifier
-                                .size(200.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Баллы: $points",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = CoffeeBrown
-                        )
+                        Text("Войдите в аккаунт для QR", color = DarkBrown)
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = { navController.navigate("login") }) {
+                            Text("Войти")
+                        }
                     }
                 }
+                summary != null -> {
+                    val s = summary!!
+                    // теперь просто используем totalDrinks напрямую
+                    val progressCount = s.totalDrinks.toInt()
 
-                Text(
-                    text = "История баллов",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = CoffeeBrown
-                )
+                    val qrBitmap = remember(s) {
+                        generateQrCodeBitmap(user!!.qrCodeNumber)
+                    }
 
-                if (history.isEmpty()) {
-                    Text(
-                        text = "История баллов пуста",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = DarkBrown
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 16.dp)
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .background(Brush.verticalGradient(listOf(Cream, LightBeige)))
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(history) { transaction ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateContentSize(),
-                                shape = RoundedCornerShape(16.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (transaction.type == "add") Cream else Color(0xFFFFE0E0)
-                                )
+                        // QR + цифры
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Column(
+                                Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Column(
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "QR",
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = "${if (transaction.type == "add") "+" else "-"} ${transaction.amount} баллов",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (transaction.type == "add") CoffeeBrown else ErrorRed
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = transaction.description,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = DarkBrown
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = transaction.timestamp.toString(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = DarkBrown
-                                    )
+                                        .size(200.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text("${s.points.toInt()} баллов", color = CoffeeBrown)
+                                Text("Бесплатных: ${s.freeDrinks}", color = CoffeeBrown)
+                                Text("Прогресс: $progressCount/6", color = DarkBrown)
+                                Spacer(Modifier.height(8.dp))
+                                LinearProgressIndicator(
+                                    progress = (progressCount / 6f),
+                                    Modifier.fillMaxWidth().height(8.dp)
+                                )
+                            }
+                        }
+
+                        // История баллов
+                        Text("История баллов", style = MaterialTheme.typography.titleLarge, color = CoffeeBrown)
+                        if (history.isEmpty()) {
+                            Text("История пуста", color = DarkBrown)
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(history) { txn ->
+                                    Card(
+                                        shape = RoundedCornerShape(16.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .animateContentSize(),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (txn.type == "add") Cream
+                                            else Color(0xFFFFE0E0)
+                                        )
+                                    ) {
+                                        Column(Modifier.padding(16.dp)) {
+                                            Text(
+                                                text = "${if (txn.type == "add") "+" else "-"} ${txn.amount} баллов",
+                                                color = if (txn.type == "add") CoffeeBrown else Color.Red
+                                            )
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(txn.description ?: "", color = DarkBrown)
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(txn.timestamp ?: "", style = MaterialTheme.typography.bodySmall, color = DarkBrown)
+                                        }
+                                    }
                                 }
                             }
                         }

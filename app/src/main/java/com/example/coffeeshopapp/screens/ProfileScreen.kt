@@ -146,7 +146,7 @@ fun ProfileScreen(navController: NavController) {
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text(
-                                    text = "${user!!.firstName} ${user!!.lastName}",
+                                    text = "${user!!.firstName.orEmpty()} ${user!!.lastName.orEmpty()}",
                                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                     color = Color.White
                                 )
