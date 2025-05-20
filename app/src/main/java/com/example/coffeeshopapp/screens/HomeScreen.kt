@@ -104,7 +104,7 @@ fun HomeScreen(navController: NavController) {
 
             // Кнопка заказа
             Button(
-                onClick = { /* TODO: Навигация на экран заказа */ },
+                onClick = { navController.navigate("order") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -124,6 +124,7 @@ fun HomeScreen(navController: NavController) {
                 color = CoffeeBrown
             )
             LazyRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(sampleDrinks) { drink ->

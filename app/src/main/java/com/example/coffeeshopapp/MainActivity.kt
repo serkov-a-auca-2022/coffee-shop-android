@@ -23,11 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.example.coffeeshopapp.screens.*
+import com.example.coffeeshopapp.screens.OrderScreen
 import com.example.coffeeshopapp.ui.theme.CoffeeBrown
 import com.example.coffeeshopapp.ui.theme.Cream
 import com.example.coffeeshopapp.ui.theme.Golden
@@ -65,6 +65,7 @@ fun NavHostContainer(navController: NavHostController, modifier: Modifier = Modi
     ) {
         composable("home") { HomeScreen(navController) }
         composable("branches") { BranchesScreen() }
+        composable("order")   { OrderScreen { navController.popBackStack() } }
         composable("qr") { QrScreen(navController) }
         composable("news") { NewsScreen(navController) }
         composable("profile") { ProfileScreen(navController) }
@@ -86,6 +87,7 @@ fun NavHostContainer(navController: NavHostController, modifier: Modifier = Modi
             )
         }
         composable("notifications") { NotificationsScreen(navController) }
+
     }
 }
 
