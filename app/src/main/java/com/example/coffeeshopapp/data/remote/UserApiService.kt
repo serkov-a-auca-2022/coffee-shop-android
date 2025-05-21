@@ -22,6 +22,12 @@ interface UserApiService {
     @GET("loyalty/summary/{userId}")
     suspend fun getLoyaltySummary(@Path("userId") userId: Long): LoyaltySummary
 
+    /** История баллов, собранная из заказов */
+    @GET("orders/user/{userId}/points")
+    suspend fun getPointsHistoryFromOrders(
+        @Path("userId") userId: Long
+    ): List<PointsHistory>
+
     companion object {
         private var INSTANCE: UserApiService? = null
 

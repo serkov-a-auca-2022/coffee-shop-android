@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,6 +69,11 @@ fun ProfileScreen(navController: NavController) {
         topBar = {
             TopAppBar(
                 title = { Text("Профиль", style = MaterialTheme.typography.headlineSmall) },
+                navigationIcon = {
+                    IconButton(onClick = { /* нет назад */ }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = CoffeeBrown,
                     titleContentColor = Color.White,
@@ -152,7 +159,6 @@ fun ProfileScreen(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Показываем email только если он не null и не пустой
                                 user!!.email
                                     ?.takeIf { it.isNotBlank() }
                                     ?.let { nonNullEmail ->
@@ -173,6 +179,25 @@ fun ProfileScreen(navController: NavController) {
                         }
                     }
 
+                    // Кнопка истории заказов
+                        Button(
+                                onClick = {
+                                        // переходим на экран истории, он сам возьмёт userId из prefs
+                                        navController.navigate("history")
+                                    },
+                                modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                        containerColor = Golden,
+                                        contentColor = DarkBrown
+                                            )
+                                    ) {
+                                Text("История заказов", style = MaterialTheme.typography.labelLarge)
+                            }
+
+                    // Кнопка выхода
                     Button(
                         onClick = {
                             userPreferences.clearUser()

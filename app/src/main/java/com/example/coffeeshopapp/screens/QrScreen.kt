@@ -21,15 +21,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.coffeeshopapp.UserPreferences
 import com.example.coffeeshopapp.data.models.LoyaltySummary
-import com.example.coffeeshopapp.data.models.User
 import com.example.coffeeshopapp.data.models.PointsHistory
+import com.example.coffeeshopapp.data.models.User
 import com.example.coffeeshopapp.data.remote.UserApiService
-import com.example.coffeeshopapp.data.remote.UserRetrofitClient
 import com.example.coffeeshopapp.ui.theme.CoffeeBrown
 import com.example.coffeeshopapp.ui.theme.Cream
 import com.example.coffeeshopapp.ui.theme.DarkBrown
 import com.example.coffeeshopapp.ui.theme.ErrorRed
-import com.example.coffeeshopapp.ui.theme.Golden
 import com.example.coffeeshopapp.ui.theme.LightBeige
 import com.example.coffeeshopapp.utils.generateQrCodeBitmap
 import kotlinx.coroutines.launch
@@ -47,6 +45,7 @@ fun QrScreen(navController: NavController) {
 
     val scope = rememberCoroutineScope()
 
+    // загрузка и summary и истории баллов
     fun loadAll() = scope.launch {
         isLoading = true
         user = prefs.getUser()
@@ -57,8 +56,10 @@ fun QrScreen(navController: NavController) {
         try {
             summary = UserApiService.getInstance()
                 .getLoyaltySummary(user!!.id)
+
+            // <-- здесь меняем метод!
             history = UserApiService.getInstance()
-                .getPointsHistory(user!!.id)
+                .getPointsHistoryFromOrders(user!!.id)
         } catch (e: Exception) {
             Log.e("QrScreen", "Ошибка загрузки", e)
         }
@@ -86,7 +87,9 @@ fun QrScreen(navController: NavController) {
                 }
                 user == null -> {
                     Column(
-                        Modifier.fillMaxSize().padding(24.dp),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -99,9 +102,6 @@ fun QrScreen(navController: NavController) {
                 }
                 summary != null -> {
                     val s = summary!!
-                    // теперь просто используем totalDrinks напрямую
-                    val progressCount = s.totalDrinks.toInt()
-
                     val qrBitmap = remember(s) {
                         generateQrCodeBitmap(user!!.qrCodeNumber)
                     }
@@ -132,46 +132,77 @@ fun QrScreen(navController: NavController) {
                                         .clip(RoundedCornerShape(12.dp))
                                 )
                                 Spacer(Modifier.height(12.dp))
+
+                                // <-- добавляем вывод кода под QR:
+                                Text(
+                                    text = "Код: ${user!!.qrCodeNumber}",
+                                    color = CoffeeBrown
+                                )
+                                Spacer(Modifier.height(8.dp))
+
                                 Text("${s.points.toInt()} баллов", color = CoffeeBrown)
                                 Text("Бесплатных: ${s.freeDrinks}", color = CoffeeBrown)
-                                Text("Прогресс: $progressCount/6", color = DarkBrown)
+                                Text("Прогресс: ${s.totalDrinks.toInt()}/6", color = DarkBrown)
                                 Spacer(Modifier.height(8.dp))
                                 LinearProgressIndicator(
-                                    progress = (progressCount / 6f),
-                                    Modifier.fillMaxWidth().height(8.dp)
+                                    progress = (s.totalDrinks.toFloat() / 6f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp)
                                 )
                             }
                         }
 
                         // История баллов
-                        Text("История баллов", style = MaterialTheme.typography.titleLarge, color = CoffeeBrown)
+                        Text(
+                            "История баллов",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = CoffeeBrown
+                        )
+
                         if (history.isEmpty()) {
-                            Text("История пуста", color = DarkBrown)
+                            Text(
+                                "История пуста",
+                                color = DarkBrown,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .wrapContentHeight(Alignment.CenterVertically)
+                            )
                         } else {
                             LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                contentPadding = PaddingValues(bottom = 16.dp)
                             ) {
                                 items(history) { txn ->
+                                    val isAdd = txn.type == "add"
+                                    val sign  = if (isAdd) "+" else "-"
+                                    val label = if (isAdd) "Начисление" else "Списание"
                                     Card(
                                         shape = RoundedCornerShape(16.dp),
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .animateContentSize(),
                                         colors = CardDefaults.cardColors(
-                                            containerColor = if (txn.type == "add") Cream
-                                            else Color(0xFFFFE0E0)
+                                            containerColor = if (isAdd) Cream else ErrorRed.copy(alpha = .3f)
                                         )
                                     ) {
                                         Column(Modifier.padding(16.dp)) {
                                             Text(
-                                                text = "${if (txn.type == "add") "+" else "-"} ${txn.amount} баллов",
-                                                color = if (txn.type == "add") CoffeeBrown else Color.Red
+                                                text = "$label: $sign${txn.amount} баллов",
+                                                color = if (isAdd) CoffeeBrown else ErrorRed
                                             )
                                             Spacer(Modifier.height(4.dp))
                                             Text(txn.description ?: "", color = DarkBrown)
                                             Spacer(Modifier.height(4.dp))
-                                            Text(txn.timestamp ?: "", style = MaterialTheme.typography.bodySmall, color = DarkBrown)
+                                            Text(
+                                                txn.timestamp ?: "",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = DarkBrown
+                                            )
                                         }
                                     }
                                 }

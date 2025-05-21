@@ -25,7 +25,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.coffeeshopapp.screens.*
 import com.example.coffeeshopapp.screens.OrderScreen
 import com.example.coffeeshopapp.ui.theme.CoffeeBrown
@@ -37,9 +39,7 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            CoffeeShopApp()
-        }
+        setContent { CoffeeShopApp() }
     }
 }
 
@@ -47,46 +47,71 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun CoffeeShopApp() {
     val navController = rememberNavController()
-
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
-    ) { paddingValues ->
-        NavHostContainer(navController, Modifier.padding(paddingValues))
+    ) { padding ->
+        NavHostContainer(navController, Modifier.padding(padding))
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun NavHostContainer(navController: NavHostController, modifier: Modifier = Modifier) {
-    NavHost(
-        navController = navController,
-        startDestination = "home",
-        modifier = modifier
-    ) {
-        composable("home") { HomeScreen(navController) }
+    NavHost(navController, startDestination = "home", modifier) {
+        composable("home")     { HomeScreen(navController) }
         composable("branches") { BranchesScreen() }
-        composable("order")   { OrderScreen { navController.popBackStack() } }
-        composable("qr") { QrScreen(navController) }
-        composable("news") { NewsScreen(navController) }
-        composable("profile") { ProfileScreen(navController) }
-        composable("login") {
-            LoginScreen(
-                navController = navController,
-                onLoginSuccess = { user -> navController.navigate("profile") },
-                onSwitchToRegister = { navController.navigate("register") }
-            )
+        composable("order")    { OrderScreen { navController.popBackStack() } }
+        composable("qr")       { QrScreen(navController) }
+        composable("news")     { NewsScreen(navController) }
+        composable("profile")  { ProfileScreen(navController) }
+        composable("login")    { LoginScreen(navController,
+            onLoginSuccess    = { navController.navigate("profile") },
+            onSwitchToRegister= { navController.navigate("register") })
         }
-        composable("register") {
-            RegisterScreen(
-                onRegisterSuccess = { user ->
-                    navController.navigate("profile")
-                },
-                onSwitchToLogin = {
-                    navController.navigate("login")
-                }
-            )
+        composable("register") { RegisterScreen(
+            onRegisterSuccess = { navController.navigate("profile") },
+            onSwitchToLogin   = { navController.navigate("login") })
         }
         composable("notifications") { NotificationsScreen(navController) }
+
+        // — Меню категорий
+        composable("menu") {
+            MenuScreen(navController)
+        }
+
+        // — Список товаров в категории
+        composable(
+            "menu/{category}",
+            arguments = listOf(navArgument("category"){ type = NavType.StringType })
+        ) { back ->
+            MenuProductListScreen(
+                navController,
+                back.arguments!!.getString("category")!!
+            )
+        }
+
+        // — Детали товара (категория + id)
+        composable(
+            "menu/{category}/product/{id}",
+            arguments = listOf(
+                navArgument("category"){ type = NavType.StringType },
+                navArgument("id"){ type = NavType.LongType }
+            )
+        ) { back ->
+            ProductDetailScreen(
+                navController,
+                back.arguments!!.getString("category")!!,
+                back.arguments!!.getLong("id")
+            )
+        }
+
+        composable("history") { OrderHistoryScreen(navController) }
+        composable(
+            "orderDetail/{orderId}",
+            arguments = listOf(navArgument("orderId") { type = NavType.LongType })
+        ) { back ->
+            OrderDetailScreen(navController, back.arguments!!.getLong("orderId"))
+        }
 
     }
 }
@@ -94,69 +119,41 @@ fun NavHostContainer(navController: NavHostController, modifier: Modifier = Modi
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
-        Triple("home", "Главная", Icons.Default.Home),
-        Triple("branches", "Филиалы", Icons.Default.Storefront),
-        Triple("qr", "Мой QR", Icons.Default.QrCode),
-        Triple("news", "Новости", Icons.Default.Newspaper),
-        Triple("profile", "Профиль", Icons.Default.Person)
+        Triple("home","Главная",Icons.Default.Home),
+        Triple("branches","Филиалы",Icons.Default.Storefront),
+        Triple("qr","Мой QR",Icons.Default.QrCode),
+        Triple("news","Новости",Icons.Default.Newspaper),
+        Triple("profile","Профиль",Icons.Default.Person)
     )
-
     NavigationBar(
         modifier = Modifier
             .shadow(8.dp, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(CoffeeBrown, Cream)
-                )
-            ),
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            .background(Brush.verticalGradient(listOf(CoffeeBrown, Cream))),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = .0f),
         tonalElevation = 0.dp
     ) {
-        val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-
+        val current = navController.currentBackStackEntryAsState().value?.destination?.route
         items.forEach { (route, title, icon) ->
-            val isSelected = currentRoute == route
-            val iconColor by animateColorAsState(
-                label = "iconColorAnimation",
-                targetValue = if (isSelected) Golden else LightBeige,
-                animationSpec = tween(300)
-            )
-            val textColor by animateColorAsState(
-                label = "textColorAnimation",
-                targetValue = if (isSelected) Golden else LightBeige,
-                animationSpec = tween(300)
-            )
+            val selected = current == route
+            val iconColor = animateColorAsState(if (selected) Golden else LightBeige, tween(300)).value
+            val textColor = animateColorAsState(if (selected) Golden else LightBeige, tween(300)).value
 
             NavigationBarItem(
-                label = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = textColor
-                    )
+                icon = {
+                    Icon(icon, title, tint = iconColor, modifier = Modifier.size(if (selected) 28.dp else 24.dp))
                 },
-                selected = isSelected,
-                onClick = {
+                label = { Text(title, color = textColor) },
+                selected = selected,
+                onClick  = {
                     navController.navigate(route) {
                         popUpTo(navController.graph.startDestinationId)
                         launchSingleTop = true
                     }
                 },
-                icon = {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = iconColor,
-                        modifier = Modifier.size(if (isSelected) 28.dp else 24.dp)
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Golden,
-                    unselectedIconColor = LightBeige,
-                    selectedTextColor = Golden,
-                    unselectedTextColor = LightBeige,
-                    indicatorColor = Cream.copy(alpha = 0.3f)
+                colors   = NavigationBarItemDefaults.colors(
+                    selectedIconColor   = Golden,
+                    unselectedIconColor = LightBeige
                 )
             )
         }
