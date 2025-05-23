@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -23,33 +24,39 @@ import retrofit2.Response
 @Composable
 fun NotificationsScreen(navController: NavController) {
     val context = LocalContext.current
-    val userPreferences = remember { UserPreferences(context) }
+    val prefs = remember { UserPreferences(context) }
+
     var notifications by remember { mutableStateOf<List<Notification>>(emptyList()) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Функция для загрузки уведомлений
     fun loadNotifications() {
-        val user = userPreferences.getUser()
+        val user = prefs.getUser()
         if (user == null) {
             errorMessage = "Пользователь не залогинен"
             return
         }
-        LoyaltyRetrofitClient.api.getUserNotifications(user.id).enqueue(object : Callback<List<Notification>> {
-            override fun onResponse(call: Call<List<Notification>>, response: Response<List<Notification>>) {
-                if (response.isSuccessful) {
-                    notifications = response.body().orEmpty()
-                    errorMessage = ""
-                } else {
-                    errorMessage = "Ошибка загрузки уведомлений: ${response.code()}"
+
+        LoyaltyRetrofitClient.api
+            .getUserNotifications(user.id)
+            .enqueue(object : Callback<List<Notification>> {
+                override fun onResponse(
+                    call: Call<List<Notification>>,
+                    response: Response<List<Notification>>
+                ) {
+                    if (response.isSuccessful) {
+                        notifications = response.body().orEmpty()
+                        errorMessage = ""
+                    } else {
+                        errorMessage = "Ошибка загрузки: ${response.code()}"
+                    }
                 }
-            }
-            override fun onFailure(call: Call<List<Notification>>, t: Throwable) {
-                errorMessage = "Ошибка сети: ${t.message}"
-            }
-        })
+                override fun onFailure(call: Call<List<Notification>>, t: Throwable) {
+                    errorMessage = "Ошибка сети: ${t.message}"
+                }
+            })
     }
 
-    // Загружаем уведомления при входе
+    // Загрузка при старте
     LaunchedEffect(Unit) {
         loadNotifications()
     }
@@ -60,47 +67,49 @@ fun NotificationsScreen(navController: NavController) {
                 title = { Text("Уведомления") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Назад"
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
                     }
                 }
             )
         }
-    ) { innerPadding ->
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .padding(16.dp)
+    ) { inner ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .padding(16.dp)
         ) {
             if (errorMessage.isNotEmpty()) {
-                Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(errorMessage, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(8.dp))
             }
 
             if (notifications.isEmpty()) {
                 Text("Уведомлений пока нет")
             } else {
-                LazyColumn {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(notifications) { notif ->
-                        Card(modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
+                        Card(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                val safeTitle = notif.title?.takeIf { it.isNotBlank() } ?: "(нет заголовка)"
-                                Text(safeTitle, style = MaterialTheme.typography.titleMedium)
-
+                            Column(Modifier.padding(16.dp)) {
+                                Text(
+                                    text = notif.title ?: "(нет заголовка)",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
                                 Spacer(Modifier.height(4.dp))
-
-                                val safeMessage = notif.message?.takeIf { it.isNotBlank() } ?: "(пусто)"
-                                Text(safeMessage, style = MaterialTheme.typography.bodyMedium)
-
+                                Text(
+                                    text = notif.message ?: "(пусто)",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                                 Spacer(Modifier.height(4.dp))
-
-                                val safeTimestamp = notif.timestamp ?: ""
-                                Text(safeTimestamp, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    text = notif.timestamp ?: "",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }

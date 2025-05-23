@@ -17,6 +17,6 @@ interface LoyaltyApiService {
     /**
      * Получить все уведомления пользователя (GET /api/loyalty/notifications/{userId})
      */
-    @GET("loyalty/notifications/{userId}")
+    @GET("notifications/user/{userId}")
     fun getUserNotifications(@Path("userId") userId: Long): Call<List<Notification>>
 }
